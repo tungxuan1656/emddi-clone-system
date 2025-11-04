@@ -101,7 +101,11 @@ echo ""
 # Validate Firebase config
 echo "🔍 Kiểm tra Firebase config..."
 if [ "$PLATFORM" = "ios" ]; then
-  FB_FILE="./resources/GoogleService-Info-${ENV}.plist"
+  if [ "$ENV" = "store" ]; then
+    FB_FILE="./resources/GoogleService-Info-production.plist"
+  else
+    FB_FILE="./resources/GoogleService-Info-${ENV}.plist"
+  fi
   if [ ! -f "$FB_FILE" ]; then
     echo "❌ File Firebase iOS không tồn tại: $FB_FILE"
     exit 1
@@ -114,7 +118,11 @@ if [ "$PLATFORM" = "ios" ]; then
     exit 1
   fi
 else
-  FB_FILE="./resources/google-services-${ENV}.json"
+  if [ "$ENV" = "store" ]; then
+    FB_FILE="./resources/google-services-production.json"
+  else
+    FB_FILE="./resources/google-services-${ENV}.json"
+  fi
   if [ ! -f "$FB_FILE" ]; then
     echo "❌ File Firebase Android không tồn tại: $FB_FILE"
     exit 1
