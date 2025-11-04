@@ -1,14 +1,14 @@
 #!/bin/bash
 
-# Script clone partner cho Expo project - Version 2.1
+# Script clone partner cho Expo project - Version 2.2 (Submodule)
 # Usage: 
-#   ./scripts/clone-partner-expo.sh <branch> --partner <partner-key> [--version <version>] [--icon <path>]
-#   ./scripts/clone-partner-expo.sh <branch> --env <env-file> [--version <version>] [--icon <path>]
+#   ./clone-partner.sh <branch> --partner <partner-key> [--version <version>] [--icon <path>]
+#   ./clone-partner.sh <branch> --env <env-file> [--version <version>] [--icon <path>]
 
 set -e
 
 echo "=========================================="
-echo "🚀 CLONE PARTNER SCRIPT - EXPO VERSION 2.1"
+echo "🚀 CLONE PARTNER SCRIPT - EXPO VERSION 2.2"
 echo "=========================================="
 
 # Kiểm tra tham số
@@ -24,7 +24,7 @@ fi
 SOURCE_BRANCH=$1
 shift
 
-LOGS_DIR="../logs-partners"
+CONFIGS_DIR="partner-configs"
 PARTNER_KEY=""
 ENV_FILE=""
 VERSION_OVERRIDE=""
@@ -78,14 +78,14 @@ if [ "$USE_ENV_FILE" = true ]; then
     exit 1
   fi
 else
-  # Tìm env file trong logs
-  ENV_FILE="${LOGS_DIR}/${PARTNER_KEY}.env.txt"
+  # Tìm env file trong partner-configs
+  ENV_FILE="${CONFIGS_DIR}/${PARTNER_KEY}.env.txt"
   if [ ! -f "$ENV_FILE" ]; then
     echo "❌ Không tìm thấy env file cho partner: $PARTNER_KEY"
     echo "   Đường dẫn: $ENV_FILE"
     echo ""
     echo "💡 Các partner có sẵn:"
-    ls -1 ${LOGS_DIR}/*.env.txt 2>/dev/null | xargs -n1 basename | sed 's/.env.txt//' | sed 's/^/   - /'
+    ls -1 ${CONFIGS_DIR}/*.env.txt 2>/dev/null | xargs -n1 basename | sed 's/.env.txt//' | sed 's/^/   - /'
     exit 1
   fi
 fi
@@ -134,8 +134,8 @@ echo "  SOURCE_BRANCH: $SOURCE_BRANCH"
 echo ""
 
 # Xác định đường dẫn Firebase configs
-FB_IOS_PATH="${LOGS_DIR}/${PARTNER_KEY}.GoogleService-Info.plist"
-FB_ANDROID_PATH="${LOGS_DIR}/${PARTNER_KEY}.google-services.json"
+FB_IOS_PATH="../${CONFIGS_DIR}/${PARTNER_KEY}.GoogleService-Info.plist"
+FB_ANDROID_PATH="../${CONFIGS_DIR}/${PARTNER_KEY}.google-services.json"
 
 # Kiểm tra Firebase files
 if [ ! -f "$FB_IOS_PATH" ]; then
@@ -150,22 +150,24 @@ fi
 
 # Xác định đường dẫn app icon
 if [ -z "$APP_ICON_PATH" ]; then
-  # Không truyền icon path, lấy từ logs
-  APP_ICON_PATH="${LOGS_DIR}/${PARTNER_KEY}.logo.png"
+  # Không truyền icon path, lấy từ partner-configs
+  APP_ICON_PATH="../${CONFIGS_DIR}/${PARTNER_KEY}.logo.png"
   if [ ! -f "$APP_ICON_PATH" ]; then
-    echo "⚠️  Không tìm thấy app icon trong logs: $APP_ICON_PATH"
+    echo "⚠️  Không tìm thấy app icon trong partner-configs: $APP_ICON_PATH"
     echo "   Sẽ giữ nguyên icon hiện tại"
     SKIP_ICON=true
   else
-    echo "📄 Sử dụng icon từ logs: $APP_ICON_PATH"
+    echo "📄 Sử dụng icon từ partner-configs: $APP_ICON_PATH"
     SKIP_ICON=false
   fi
 else
-  # Có truyền icon path
+  # Có truyền icon path - cần chuyển sang relative path
   if [ ! -f "$APP_ICON_PATH" ]; then
     echo "❌ File app icon không tồn tại: $APP_ICON_PATH"
     exit 1
   fi
+  # Lưu absolute path trước khi cd
+  APP_ICON_PATH="$(cd "$(dirname "$APP_ICON_PATH")" && pwd)/$(basename "$APP_ICON_PATH")"
   echo "📄 Sử dụng icon tùy chỉnh: $APP_ICON_PATH"
   SKIP_ICON=false
 fi
@@ -190,6 +192,11 @@ fi
 BRANCH_NAME="partners/$PARTNER_KEY"
 echo ""
 echo "🌿 Branch: $BRANCH_NAME"
+
+# Chuyển vào thư mục emddi-v2
+echo ""
+echo "📂 Chuyển vào submodule emddi-v2..."
+cd emddi-v2
 
 # Git setup - xoá branch cũ nếu tồn tại
 echo ""
@@ -270,15 +277,39 @@ sed -i '' 's/ENV_NAME=Production/ENV_NAME=Staging/' ./.env.staging
 sed -i '' "s|BASE_URL=.*|BASE_URL=https://customer-api.uat.emddi.xyz/api|" ./.env.staging
 sed -i '' 's|https://api.emddi.com|https://api.uat.emddi.net|g' ./.env.staging
 
-# Lưu logs
-echo "  💾 Lưu logs..."
-mkdir -p ${LOGS_DIR}
-cp "$ENV_FILE" "${LOGS_DIR}/${PARTNER_KEY}.env.txt"
+# Lưu configs vào submodule partner-configs
+echo ""
+echo "💾 Lưu configs vào submodule partner-configs..."
+cd ../${CONFIGS_DIR}
+
+# Copy files vào partner-configs
+cp "$ENV_FILE" "./${PARTNER_KEY}.env.txt"
 if [ "$SKIP_ICON" = false ]; then
-  cp "$APP_ICON_PATH" "${LOGS_DIR}/${PARTNER_KEY}.logo.png"
+  cp "$APP_ICON_PATH" "./${PARTNER_KEY}.logo.png"
 fi
-cp "$FB_ANDROID_PATH" "${LOGS_DIR}/${PARTNER_KEY}.google-services.json"
-cp "$FB_IOS_PATH" "${LOGS_DIR}/${PARTNER_KEY}.GoogleService-Info.plist"
+cp "$FB_ANDROID_PATH" "./${PARTNER_KEY}.google-services.json"
+cp "$FB_IOS_PATH" "./${PARTNER_KEY}.GoogleService-Info.plist"
+
+# Git commit trong partner-configs
+echo "  📤 Commit configs trong partner-configs..."
+git add .
+if git diff --staged --quiet; then
+  echo "  ⏭️  Không có thay đổi trong partner-configs"
+else
+  git commit -m "📝 Update configs cho partner: $PARTNER_KEY
+
+- Partner: $PARTNER_KEY
+- App: $APP_NAME
+- Version: ${APP_VERSION_OVERRIDE:-$APP_VERSION}
+- iOS Bundle ID: $APP_ID_IOS
+- Android Package: $APP_ID_ANDROID
+"
+  git push origin main
+  echo "  ✅ Đã commit và push partner-configs"
+fi
+
+# Quay lại thư mục emddi-v2
+cd ../emddi-v2
 
 # Install dependencies (optional)
 echo ""
@@ -309,12 +340,11 @@ echo ""
 echo "=========================================="
 echo "✅ HOÀN THÀNH!"
 echo "=========================================="
-echo "Branch: $BRANCH_NAME"
+echo "Branch: $BRANCH_NAME (trong submodule emddi-v2)"
 echo "App Name: $APP_NAME"
 echo "Partner Key: $PARTNER_KEY"
 echo ""
 echo "🚀 Các bước tiếp theo:"
-echo "  1. Build development: APP_ENV=development yarn ios"
-echo "  2. Build staging: APP_ENV=staging yarn ios"
-echo "  3. Build production: APP_ENV=production yarn ios"
+echo "  1. Build iOS production: ./build-branch-expo.sh ios production $BRANCH_NAME"
+echo "  2. Build Android production: ./build-branch-expo.sh android production $BRANCH_NAME"
 echo "=========================================="

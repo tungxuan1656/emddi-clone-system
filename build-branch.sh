@@ -1,12 +1,12 @@
 #!/bin/bash
 
-# Script build branch cho Expo project
-# Usage: ./scripts/build-branch-expo.sh <platform> <env> <branch>
+# Script build branch cho Expo project - Version 2.2 (Submodule)
+# Usage: ./build-branch.sh <platform> <env> <branch>
 
 set -e
 
 echo "=========================================="
-echo "🚀 BUILD BRANCH SCRIPT - EXPO VERSION"
+echo "🚀 BUILD BRANCH SCRIPT - EXPO VERSION 2.2"
 echo "=========================================="
 
 # Kiểm tra tham số
@@ -46,13 +46,17 @@ echo "  Environment: $ENV"
 echo "  Branch: $BRANCH"
 echo ""
 
+# Xác định thư mục submodule dựa vào platform
 if [ "$PLATFORM" = "ios" ]; then
   echo "🍎 Bắt đầu build iOS..."
-  cd emddi-v2-ios
+  SUBMODULE_DIR="emddi-v2-ios"
 else
   echo "🤖 Bắt đầu build Android..."
-  cd emddi-v2-android
+  SUBMODULE_DIR="emddi-v2-android"
 fi
+
+echo "📂 Chuyển vào submodule: $SUBMODULE_DIR"
+cd $SUBMODULE_DIR
 
 # Setup PATH
 export PATH="/opt/homebrew/opt/ruby/bin:$PATH"
