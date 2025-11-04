@@ -76,7 +76,13 @@ git checkout $BRANCH
 git pull origin $BRANCH
 
 # Load env file
-ENV_FILE=".env.$ENV"
+# Nếu env là store thì load file .env.production
+if [ "$ENV" = "store" ]; then
+  ENV_FILE=".env.production"
+else
+  ENV_FILE=".env.$ENV"
+fi
+
 if [ ! -f "$ENV_FILE" ]; then
   echo "❌ File env không tồn tại: $ENV_FILE"
   exit 1
