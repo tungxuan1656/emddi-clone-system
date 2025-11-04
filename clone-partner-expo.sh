@@ -1,0 +1,320 @@
+#!/bin/bash
+
+# Script clone partner cho Expo project - Version 2.1
+# Usage: 
+#   ./scripts/clone-partner-expo.sh <branch> --partner <partner-key> [--version <version>] [--icon <path>]
+#   ./scripts/clone-partner-expo.sh <branch> --env <env-file> [--version <version>] [--icon <path>]
+
+set -e
+
+echo "=========================================="
+echo "🚀 CLONE PARTNER SCRIPT - EXPO VERSION 2.1"
+echo "=========================================="
+
+# Kiểm tra tham số
+if [ $# -lt 3 ]; then
+  echo "❌ Thiếu tham số!"
+  echo ""
+  echo "  Usage: $0 <branch> --partner <partner-key> --env <env-file> [--version <version>] [--icon <path>]"
+  echo ""
+  echo "Version format: <APP_VERSION>-<APP_BUILD_CODE> (ví dụ: 5.0.1-25)"
+  exit 1
+fi
+
+SOURCE_BRANCH=$1
+shift
+
+LOGS_DIR="../logs-partners"
+PARTNER_KEY=""
+ENV_FILE=""
+VERSION_OVERRIDE=""
+APP_VERSION_OVERRIDE=""
+APP_BUILD_CODE_OVERRIDE=""
+APP_ICON_PATH=""
+USE_ENV_FILE=false
+
+# Parse flags
+while [[ $# -gt 0 ]]; do
+  case $1 in
+    --partner)
+      PARTNER_KEY="$2"
+      shift 2
+      ;;
+    --env)
+      ENV_FILE="$2"
+      USE_ENV_FILE=true
+      shift 2
+      ;;
+    --version)
+      VERSION_OVERRIDE="$2"
+      shift 2
+      ;;
+    --icon)
+      APP_ICON_PATH="$2"
+      shift 2
+      ;;
+    *)
+      echo "❌ Tham số không hợp lệ: $1"
+      exit 1
+      ;;
+  esac
+done
+
+# Validate: phải có --partner hoặc --env
+if [ -z "$PARTNER_KEY" ] && [ -z "$ENV_FILE" ]; then
+  echo "❌ Phải có --partner hoặc --env"
+  exit 1
+fi
+
+if [ -n "$PARTNER_KEY" ] && [ -n "$ENV_FILE" ]; then
+  echo "❌ Không thể dùng cả --partner và --env cùng lúc"
+  exit 1
+fi
+
+# Xác định env file
+if [ "$USE_ENV_FILE" = true ]; then
+  if [ ! -f "$ENV_FILE" ]; then
+    echo "❌ File env không tồn tại: $ENV_FILE"
+    exit 1
+  fi
+else
+  # Tìm env file trong logs
+  ENV_FILE="${LOGS_DIR}/${PARTNER_KEY}.env.txt"
+  if [ ! -f "$ENV_FILE" ]; then
+    echo "❌ Không tìm thấy env file cho partner: $PARTNER_KEY"
+    echo "   Đường dẫn: $ENV_FILE"
+    echo ""
+    echo "💡 Các partner có sẵn:"
+    ls -1 ${LOGS_DIR}/*.env.txt 2>/dev/null | xargs -n1 basename | sed 's/.env.txt//' | sed 's/^/   - /'
+    exit 1
+  fi
+fi
+
+# Parse version override nếu có
+if [ -n "$VERSION_OVERRIDE" ]; then
+  if [[ $VERSION_OVERRIDE =~ ^([0-9]+\.[0-9]+\.[0-9]+)-([0-9]+)$ ]]; then
+    APP_VERSION_OVERRIDE="${BASH_REMATCH[1]}"
+    APP_BUILD_CODE_OVERRIDE="${BASH_REMATCH[2]}"
+    echo "📌 Version override: $APP_VERSION_OVERRIDE (build: $APP_BUILD_CODE_OVERRIDE)"
+  else
+    echo "❌ Version format không hợp lệ: $VERSION_OVERRIDE"
+    echo "   Format đúng: <version>-<build_code> (ví dụ: 5.0.1-25)"
+    exit 1
+  fi
+fi
+
+# Load biến môi trường
+source $ENV_FILE
+
+# Validate thông tin partner
+if [ -z "$PARTNER_KEY" ]; then
+  echo "❌ PARTNER_KEY không được để trống trong file env"
+  exit 1
+fi
+
+if [ -z "$APP_NAME" ]; then
+  echo "❌ APP_NAME không được để trống trong file env"
+  exit 1
+fi
+
+echo ""
+echo "📋 Thông tin Partner:"
+echo "  PARTNER_KEY: $PARTNER_KEY"
+echo "  APP_NAME: $APP_NAME"
+echo "  APP_ID_IOS: $APP_ID_IOS"
+echo "  APP_ID_ANDROID: $APP_ID_ANDROID"
+if [ -n "$APP_VERSION_OVERRIDE" ]; then
+  echo "  APP_VERSION: $APP_VERSION_OVERRIDE (override từ: $APP_VERSION)"
+  echo "  APP_BUILD_CODE: $APP_BUILD_CODE_OVERRIDE (override từ: $APP_BUILD_CODE)"
+else
+  echo "  APP_VERSION: $APP_VERSION"
+  echo "  APP_BUILD_CODE: $APP_BUILD_CODE"
+fi
+echo "  SOURCE_BRANCH: $SOURCE_BRANCH"
+echo ""
+
+# Xác định đường dẫn Firebase configs
+FB_IOS_PATH="${LOGS_DIR}/${PARTNER_KEY}.GoogleService-Info.plist"
+FB_ANDROID_PATH="${LOGS_DIR}/${PARTNER_KEY}.google-services.json"
+
+# Kiểm tra Firebase files
+if [ ! -f "$FB_IOS_PATH" ]; then
+  echo "❌ Không tìm thấy Firebase iOS config: $FB_IOS_PATH"
+  exit 1
+fi
+
+if [ ! -f "$FB_ANDROID_PATH" ]; then
+  echo "❌ Không tìm thấy Firebase Android config: $FB_ANDROID_PATH"
+  exit 1
+fi
+
+# Xác định đường dẫn app icon
+if [ -z "$APP_ICON_PATH" ]; then
+  # Không truyền icon path, lấy từ logs
+  APP_ICON_PATH="${LOGS_DIR}/${PARTNER_KEY}.logo.png"
+  if [ ! -f "$APP_ICON_PATH" ]; then
+    echo "⚠️  Không tìm thấy app icon trong logs: $APP_ICON_PATH"
+    echo "   Sẽ giữ nguyên icon hiện tại"
+    SKIP_ICON=true
+  else
+    echo "📄 Sử dụng icon từ logs: $APP_ICON_PATH"
+    SKIP_ICON=false
+  fi
+else
+  # Có truyền icon path
+  if [ ! -f "$APP_ICON_PATH" ]; then
+    echo "❌ File app icon không tồn tại: $APP_ICON_PATH"
+    exit 1
+  fi
+  echo "📄 Sử dụng icon tùy chỉnh: $APP_ICON_PATH"
+  SKIP_ICON=false
+fi
+
+# Validate Firebase config
+echo "🔍 Kiểm tra Firebase config..."
+if grep -q "$APP_ID_IOS" "$FB_IOS_PATH"; then
+  echo "  ✅ Firebase iOS hợp lệ (bundle ID: $APP_ID_IOS)"
+else
+  echo "  ❌ Firebase iOS không hợp lệ! Bundle ID không khớp: $APP_ID_IOS"
+  exit 1
+fi
+
+if grep -q "$APP_ID_ANDROID" "$FB_ANDROID_PATH"; then
+  echo "  ✅ Firebase Android hợp lệ (package: $APP_ID_ANDROID)"
+else
+  echo "  ❌ Firebase Android không hợp lệ! Package không khớp: $APP_ID_ANDROID"
+  exit 1
+fi
+
+# Tạo tên branch
+BRANCH_NAME="partners/$PARTNER_KEY"
+echo ""
+echo "🌿 Branch: $BRANCH_NAME"
+
+# Git setup - xoá branch cũ nếu tồn tại
+echo ""
+echo "🔧 Git setup..."
+git fetch origin
+
+# Xoá branch local nếu tồn tại
+if git show-ref --verify --quiet refs/heads/$BRANCH_NAME; then
+  echo "  🗑️  Xoá branch local cũ: $BRANCH_NAME"
+  git branch -D $BRANCH_NAME
+fi
+
+# Xoá branch remote nếu tồn tại
+if git ls-remote --exit-code --heads origin $BRANCH_NAME > /dev/null 2>&1; then
+  echo "  🗑️  Xoá branch remote cũ: $BRANCH_NAME"
+  git push origin --delete $BRANCH_NAME
+fi
+
+# Checkout source branch
+echo "  ✨ Checkout branch: $SOURCE_BRANCH"
+git checkout $SOURCE_BRANCH
+git pull origin $SOURCE_BRANCH
+git checkout -b $BRANCH_NAME
+
+# Copy resources
+echo ""
+echo "📦 Copy resources..."
+
+# Tạo thư mục logs nếu chưa có
+mkdir -p ./logs-partners
+
+# Copy Firebase configs cho tất cả môi trường (development, staging, production)
+echo "  📄 Copy Firebase configs..."
+cp "$FB_IOS_PATH" "./resources/GoogleService-Info-development.plist"
+cp "$FB_IOS_PATH" "./resources/GoogleService-Info-staging.plist"
+cp "$FB_IOS_PATH" "./resources/GoogleService-Info-production.plist"
+
+cp "$FB_ANDROID_PATH" "./resources/google-services-development.json"
+cp "$FB_ANDROID_PATH" "./resources/google-services-staging.json"
+cp "$FB_ANDROID_PATH" "./resources/google-services-production.json"
+
+echo "  🎨 Copy app icon..."
+if [ "$SKIP_ICON" = false ]; then
+  cp "$APP_ICON_PATH" "./resources/app-icon.png"
+  echo "     ✅ Icon đã được cập nhật"
+else
+  echo "     ⏭️  Giữ nguyên icon hiện tại"
+fi
+
+# Copy env files cho các môi trường
+echo "  ⚙️  Copy env configs..."
+cp "$ENV_FILE" "./.env.production"
+
+# Tạo env files cho development và staging
+cat "$ENV_FILE" > "./.env.development"
+cat "$ENV_FILE" > "./.env.staging"
+
+# Override version nếu có
+if [ -n "$APP_VERSION_OVERRIDE" ]; then
+  echo "  🔢 Update version..."
+  sed -i '' "s|APP_VERSION=.*|APP_VERSION=$APP_VERSION_OVERRIDE|" ./.env.production
+  sed -i '' "s|APP_VERSION=.*|APP_VERSION=$APP_VERSION_OVERRIDE|" ./.env.development
+  sed -i '' "s|APP_VERSION=.*|APP_VERSION=$APP_VERSION_OVERRIDE|" ./.env.staging
+  
+  sed -i '' "s|APP_BUILD_CODE=.*|APP_BUILD_CODE=$APP_BUILD_CODE_OVERRIDE|" ./.env.production
+  sed -i '' "s|APP_BUILD_CODE=.*|APP_BUILD_CODE=$APP_BUILD_CODE_OVERRIDE|" ./.env.development
+  sed -i '' "s|APP_BUILD_CODE=.*|APP_BUILD_CODE=$APP_BUILD_CODE_OVERRIDE|" ./.env.staging
+  echo "     ✅ Version updated: $APP_VERSION_OVERRIDE (build: $APP_BUILD_CODE_OVERRIDE)"
+fi
+
+# Chỉnh sửa env development
+sed -i '' 's/ENV_NAME=Production/ENV_NAME=Development/' ./.env.development
+sed -i '' "s|BASE_URL=.*|BASE_URL=https://api.dev.emddi.net/customer-api/api|" ./.env.development
+sed -i '' 's|https://api.emddi.com|https://api.dev.emddi.net|g' ./.env.development
+
+# Chỉnh sửa env staging
+sed -i '' 's/ENV_NAME=Production/ENV_NAME=Staging/' ./.env.staging
+sed -i '' "s|BASE_URL=.*|BASE_URL=https://customer-api.uat.emddi.xyz/api|" ./.env.staging
+sed -i '' 's|https://api.emddi.com|https://api.uat.emddi.net|g' ./.env.staging
+
+# Lưu logs
+echo "  💾 Lưu logs..."
+mkdir -p ${LOGS_DIR}
+cp "$ENV_FILE" "${LOGS_DIR}/${PARTNER_KEY}.env.txt"
+if [ "$SKIP_ICON" = false ]; then
+  cp "$APP_ICON_PATH" "${LOGS_DIR}/${PARTNER_KEY}.logo.png"
+fi
+cp "$FB_ANDROID_PATH" "${LOGS_DIR}/${PARTNER_KEY}.google-services.json"
+cp "$FB_IOS_PATH" "${LOGS_DIR}/${PARTNER_KEY}.GoogleService-Info.plist"
+
+# Install dependencies (optional)
+echo ""
+echo "📦 Install dependencies..."
+yarn install
+
+# Git commit và push
+echo ""
+echo "📤 Git commit và push..."
+git add .
+
+# Tạo commit message
+COMMIT_VERSION="${APP_VERSION_OVERRIDE:-$APP_VERSION}"
+COMMIT_BUILD_CODE="${APP_BUILD_CODE_OVERRIDE:-$APP_BUILD_CODE}"
+
+git commit -m "🎉 Init partner: $APP_NAME ($PARTNER_KEY)
+
+- App Name: $APP_NAME
+- Partner Key: $PARTNER_KEY
+- Version: $COMMIT_VERSION (build: $COMMIT_BUILD_CODE)
+- iOS Bundle ID: $APP_ID_IOS
+- Android Package: $APP_ID_ANDROID
+"
+
+git push --set-upstream origin $BRANCH_NAME
+
+echo ""
+echo "=========================================="
+echo "✅ HOÀN THÀNH!"
+echo "=========================================="
+echo "Branch: $BRANCH_NAME"
+echo "App Name: $APP_NAME"
+echo "Partner Key: $PARTNER_KEY"
+echo ""
+echo "🚀 Các bước tiếp theo:"
+echo "  1. Build development: APP_ENV=development yarn ios"
+echo "  2. Build staging: APP_ENV=staging yarn ios"
+echo "  3. Build production: APP_ENV=production yarn ios"
+echo "=========================================="
