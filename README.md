@@ -14,6 +14,10 @@ emddi-customer-clone-system/
 ├── emddi-v2/                 # Submodule: source code chính
 ├── emddi-v2-ios/             # Submodule: cho iOS build
 ├── emddi-v2-android/         # Submodule: cho Android build
+├── secrets/                  # Secrets cho Fastlane (KHÔNG commit)
+│   ├── AuthKey_C7894KGAY7.p8
+│   ├── emddi2024-key-fastlane-upload-aab.json
+│   └── emddicustomer.jks
 ├── clone-partner.sh          # Script tạo branch mới cho partner
 └── build-branch.sh           # Script build app
 ```
@@ -28,7 +32,47 @@ cd emddi-customer-clone-system
 git submodule update --init --recursive
 ```
 
-### 2. Tạo partner mới
+### 2. Setup Secrets cho Fastlane
+
+Tạo folder `secrets` và copy các file cần thiết cho Fastlane build:
+
+```bash
+mkdir -p secrets
+
+# Copy các file secrets (lấy từ team hoặc 1Password/LastPass)
+# iOS: Apple App Store Connect API Key
+cp /path/to/AuthKey_C7894KGAY7.p8 secrets/
+
+# Android: Google Play Service Account Key
+cp /path/to/emddi2024-key-fastlane-upload-aab.json secrets/
+
+# Android: Keystore
+cp /path/to/emddicustomer.jks secrets/
+```
+
+**⚠️ LƯU Ý:**
+- Folder `secrets` đã được thêm vào `.gitignore` - **KHÔNG BAO GIỜ** commit các file này
+- Các file này chỉ cần ở máy build, không cần trên repo
+- Lưu trữ an toàn trong 1Password/LastPass hoặc CI/CD secrets
+
+**Chi tiết các file:**
+
+1. **AuthKey_C7894KGAY7.p8**
+   - Apple App Store Connect API Key
+   - Dùng để upload app lên App Store qua Fastlane
+   - Download từ: Apple Developer Portal → Keys → App Store Connect API
+
+2. **emddi2024-key-fastlane-upload-aab.json**
+   - Google Play Service Account JSON key
+   - Dùng để upload app lên Google Play qua Fastlane
+   - Tạo từ: Google Cloud Console → Service Accounts
+
+3. **emddicustomer.jks**
+   - Android keystore file
+   - Dùng để sign APK/AAB cho production
+   - Bảo mật mật khẩu keystore trong env hoặc CI/CD secrets
+
+### 3. Tạo partner mới
 
 ```bash
 # Chuẩn bị configs trong partner-configs (xem mục "Partner Configs")
@@ -329,6 +373,26 @@ yarn install
 cd ..
 ./build-branch.sh ios production partners/abc-taxi
 ```
+
+### Fastlane không tìm thấy secrets
+```bash
+# Kiểm tra folder secrets tồn tại
+ls -la secrets/
+
+# Kết quả mong đợi:
+# AuthKey_C7894KGAY7.p8
+# emddi2024-key-fastlane-upload-aab.json
+# emddicustomer.jks
+
+# Nếu thiếu, copy lại từ nguồn an toàn
+mkdir -p secrets
+# Copy các file...
+```
+
+### Keystore hoặc API key hết hạn
+- **iOS**: Tạo lại API Key mới từ Apple Developer Portal
+- **Android**: Tạo lại Service Account key từ Google Cloud Console
+- **Keystore**: Không được làm mất, nếu mất phải tạo app mới
 
 ## 📊 Quản lý Partners
 
