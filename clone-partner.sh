@@ -282,11 +282,24 @@ echo ""
 echo "💾 Lưu configs vào submodule partner-configs..."
 cd ../${CONFIGS_DIR}
 
-# Copy files vào partner-configs
-cp "$ENV_FILE" "./${PARTNER_KEY}.env.txt"
+# Copy files vào partner-configs và cập nhật version nếu có override
+if [ -n "$APP_VERSION_OVERRIDE" ]; then
+  # Copy env file và update version
+  cp "$ENV_FILE" "./${PARTNER_KEY}.env.txt"
+  sed -i '' "s|APP_VERSION=.*|APP_VERSION=$APP_VERSION_OVERRIDE|" "./${PARTNER_KEY}.env.txt"
+  sed -i '' "s|APP_BUILD_CODE=.*|APP_BUILD_CODE=$APP_BUILD_CODE_OVERRIDE|" "./${PARTNER_KEY}.env.txt"
+  echo "  ✅ Updated version trong partner-configs: $APP_VERSION_OVERRIDE (build: $APP_BUILD_CODE_OVERRIDE)"
+else
+  cp "$ENV_FILE" "./${PARTNER_KEY}.env.txt"
+fi
+
+# Copy logo nếu có thay đổi
 if [ "$SKIP_ICON" = false ]; then
   cp "$APP_ICON_PATH" "./${PARTNER_KEY}.logo.png"
+  echo "  ✅ Updated logo trong partner-configs"
 fi
+
+# Copy Firebase configs (luôn copy để đảm bảo đồng bộ)
 cp "$FB_ANDROID_PATH" "./${PARTNER_KEY}.google-services.json"
 cp "$FB_IOS_PATH" "./${PARTNER_KEY}.GoogleService-Info.plist"
 
@@ -296,14 +309,25 @@ git add .
 if git diff --staged --quiet; then
   echo "  ⏭️  Không có thay đổi trong partner-configs"
 else
-  git commit -m "📝 Update configs cho partner: $PARTNER_KEY
+  COMMIT_MSG="📝 Update configs cho partner: $PARTNER_KEY
 
 - Partner: $PARTNER_KEY
 - App: $APP_NAME
-- Version: ${APP_VERSION_OVERRIDE:-$APP_VERSION}
+- Version: ${APP_VERSION_OVERRIDE:-$APP_VERSION} (build: ${APP_BUILD_CODE_OVERRIDE:-$APP_BUILD_CODE})
 - iOS Bundle ID: $APP_ID_IOS
-- Android Package: $APP_ID_ANDROID
-"
+- Android Package: $APP_ID_ANDROID"
+
+  if [ -n "$APP_VERSION_OVERRIDE" ]; then
+    COMMIT_MSG="$COMMIT_MSG
+- Version updated from $APP_VERSION to $APP_VERSION_OVERRIDE"
+  fi
+
+  if [ "$SKIP_ICON" = false ]; then
+    COMMIT_MSG="$COMMIT_MSG
+- Logo updated"
+  fi
+
+  git commit -m "$COMMIT_MSG"
   git push origin main
   echo "  ✅ Đã commit và push partner-configs"
 fi
@@ -345,6 +369,6 @@ echo "App Name: $APP_NAME"
 echo "Partner Key: $PARTNER_KEY"
 echo ""
 echo "🚀 Các bước tiếp theo:"
-echo "  1. Build iOS production: ./build-branch-expo.sh ios production $BRANCH_NAME"
-echo "  2. Build Android production: ./build-branch-expo.sh android production $BRANCH_NAME"
+echo "  1. Build iOS production: ./build-branch.sh ios production $BRANCH_NAME"
+echo "  2. Build Android production: ./build-branch.sh android production $BRANCH_NAME"
 echo "=========================================="
