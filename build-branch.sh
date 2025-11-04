@@ -127,39 +127,50 @@ echo ""
 echo "📦 Install dependencies..."
 yarn install
 
-# Expo prebuild (tạo native projects)
-echo ""
-echo "🔨 Expo prebuild..."
-export APP_ENV=$ENV
-
-# iOS specific setup
-if [ "$PLATFORM" = "ios" ]; then
-  echo ""
-  echo "🍎 iOS Setup..."
-  rm -rf ./ios
-  npx expo prebuild --clean --platform ios
-else
-  echo ""
-  echo "🤖 Android Setup..."
-  rm -rf ./android
-  npx expo prebuild --clean --platform android
-fi
-
-# Build với Fastlane
-echo ""
-echo "🚀 Build với Fastlane..."
-
-
-# Install Fastlane dependencies
 echo "  📦 Install Fastlane plugins..."
 bundle update --bundler
 bundle update && bundle install
 bundle exec fastlane install_plugins --verbose
 
-# Run Fastlane
-echo "  🏃 Run Fastlane $PLATFORM $ENV..."
-export APP_ENV=$ENV
-bundle exec fastlane $PLATFORM $ENV
+# Build với npm script
+echo ""
+echo "� Build với npm script..."
+
+# Xác định npm script cần chạy
+if [ "$PLATFORM" = "ios" ]; then
+  case "$ENV" in
+    development)
+      NPM_SCRIPT="build:ios:dev"
+      ;;
+    staging)
+      NPM_SCRIPT="build:ios:staging"
+      ;;
+    production)
+      NPM_SCRIPT="build:ios:prod"
+      ;;
+    store)
+      NPM_SCRIPT="build:ios:store"
+      ;;
+  esac
+else
+  case "$ENV" in
+    development)
+      NPM_SCRIPT="build:android:dev"
+      ;;
+    staging)
+      NPM_SCRIPT="build:android:staging"
+      ;;
+    production)
+      NPM_SCRIPT="build:android:prod"
+      ;;
+    store)
+      NPM_SCRIPT="build:android:store"
+      ;;
+  esac
+fi
+
+echo "  📌 Running: yarn $NPM_SCRIPT"
+yarn $NPM_SCRIPT
 
 echo ""
 echo "=========================================="
