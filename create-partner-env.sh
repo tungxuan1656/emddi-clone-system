@@ -1,58 +1,33 @@
 #!/bin/bash
 
 # Script to create a new partner environment configuration file
-# Usage: ./create-partner-env.sh <APP_NAME> <PARTNER_KEY> <APP_CODE> <COLOR_PARAMS...>
-# Example: ./create-partner-env.sh "My App" myapp MY_APP 'PRIMARY_COLOR="#0CC3C9"' 'PRIMARY_100="#E5F9FA"' ...
+# Usage: ./create-partner-env.sh <APP_NAME> <PARTNER_KEY> <APP_CODE> <APP_ICON_PATH> <COLOR_PARAMS...>
+# Example: ./create-partner-env.sh "My App" myapp MY_APP ./logo.png 'PRIMARY_COLOR="#0CC3C9"' 'PRIMARY_100="#E5F9FA"' ...
 
 set -e
 
-# Check for optional flags
-SKIP_FIREBASE=false
-APP_ICON_PATH=""
-
-# Parse flags
-args=()
-i=1
-while [ $i -le $# ]; do
-    arg="${!i}"
-    if [ "$arg" == "--skip-firebase" ]; then
-        SKIP_FIREBASE=true
-    elif [ "$arg" == "--icon" ]; then
-        i=$((i + 1))
-        APP_ICON_PATH="${!i}"
-    else
-        args+=("$arg")
-    fi
-    i=$((i + 1))
-done
-
-# Restore positional parameters
-set -- "${args[@]}"
-
 # Check if required parameters are provided
-if [ $# -lt 4 ]; then
+if [ $# -lt 5 ]; then
     echo "Error: Missing required parameters"
-    echo "Usage: $0 <APP_NAME> <PARTNER_KEY> <APP_CODE> <COLOR_PARAMS...> [--skip-firebase] [--icon <path>]"
+    echo "Usage: $0 <APP_NAME> <PARTNER_KEY> <APP_CODE> <APP_ICON_PATH> <COLOR_PARAMS...>"
     echo ""
     echo "Parameters:"
     echo "  APP_NAME         - The display name of the app (e.g., 'Aida Go')"
     echo "  PARTNER_KEY      - The partner key identifier (e.g., 'aidago')"
     echo "  APP_CODE         - The app code identifier (e.g., 'AIDA_GO')"
+    echo "  APP_ICON_PATH    - Path to app icon (will be converted to 1024x1024 PNG)"
     echo "  COLOR_PARAMS     - Primary colors as separate parameters"
     echo ""
-    echo "Optional flags:"
-    echo "  --skip-firebase  - Skip Firebase app creation"
-    echo "  --icon <path>    - Path to app icon (will be converted to 1024x1024 PNG)"
-    echo ""
     echo "Example:"
-    echo "  $0 \"My App\" myapp MY_APP 'PRIMARY_COLOR=\"#0CC3C9\"' 'PRIMARY_100=\"#E5F9FA\"' 'PRIMARY_200=\"#B3EDF1\"' 'PRIMARY_300=\"#80E2E7\"' 'PRIMARY_400=\"#4DDAE0\"' 'PRIMARY_500=\"#0CC3C9\"' 'PRIMARY_600=\"#0B989C\"' 'PRIMARY_700=\"#086C6E\"' --icon ./logo.png"
+    echo "  $0 \"My App\" myapp MY_APP ./logo.png 'PRIMARY_COLOR=\"#0CC3C9\"' 'PRIMARY_100=\"#E5F9FA\"' 'PRIMARY_200=\"#B3EDF1\"' 'PRIMARY_300=\"#80E2E7\"' 'PRIMARY_400=\"#4DDAE0\"' 'PRIMARY_500=\"#0CC3C9\"' 'PRIMARY_600=\"#0B989C\"' 'PRIMARY_700=\"#086C6E\"'"
     exit 1
 fi
 
 APP_NAME="$1"
 PARTNER_KEY="$2"
 APP_CODE="$3"
-shift 3
+APP_ICON_PATH="$4"
+shift 4
 
 # Initialize color variables as empty
 PRIMARY_COLOR=""
@@ -150,7 +125,6 @@ APP_NAME="$APP_NAME"
 PARTNER_KEY=$PARTNER_KEY
 APP_ID_ANDROID=$APP_ID_ANDROID
 APP_ID_IOS=$APP_ID_IOS
-REGION="kg"
 
 # Phiên bản app
 APP_VERSION=1.0.0
@@ -188,69 +162,60 @@ echo "  APP_CODE: $APP_CODE"
 echo "  APP_ID_ANDROID: $APP_ID_ANDROID"
 echo "  APP_ID_IOS: $APP_ID_IOS"
 echo "  PRIMARY_COLOR: $PRIMARY_COLOR"
+echo "  APP_ICON_PATH: $APP_ICON_PATH"
 echo ""
 
 # ===================================================================
 # Process App Icon
 # ===================================================================
 
-if [ -n "$APP_ICON_PATH" ]; then
-    echo "==============================================="
-    echo "🎨 Processing app icon..."
-    echo "==============================================="
-    
-    # Check if icon file exists
-    if [ ! -f "$APP_ICON_PATH" ]; then
-        echo "❌ Error: Icon file not found: $APP_ICON_PATH"
-        exit 1
-    fi
-    
-    # Check if ImageMagick is installed (for convert command)
-    if ! command -v magick &> /dev/null && ! command -v convert &> /dev/null; then
-        echo "❌ Error: ImageMagick is not installed"
-        echo "Please install it with: brew install imagemagick"
-        exit 1
-    fi
-    
-    # Determine convert command (newer ImageMagick uses 'magick', older uses 'convert')
-    CONVERT_CMD="convert"
-    if command -v magick &> /dev/null; then
-        CONVERT_CMD="magick"
-    fi
-    
-    # Output icon path
-    ICON_OUTPUT="partner-configs/${PARTNER_KEY}.logo.png"
-    
-    echo "📁 Input icon: $APP_ICON_PATH"
-    echo "📐 Converting and resizing to 1024x1024 PNG..."
-    
-    # Convert and resize icon to 1024x1024 PNG
-    $CONVERT_CMD "$APP_ICON_PATH" -resize 1024x1024 -background none -gravity center -extent 1024x1024 "$ICON_OUTPUT"
-    
-    if [ $? -ne 0 ]; then
-        echo "❌ Error: Failed to process icon"
-        exit 1
-    fi
-    
-    # Get file size
-    ICON_SIZE=$(du -h "$ICON_OUTPUT" | cut -f1)
-    
-    echo "✅ Icon processed and saved to: $ICON_OUTPUT"
-    echo "📊 Icon size: $ICON_SIZE"
-    echo ""
+echo "==============================================="
+echo "🎨 Processing app icon..."
+echo "==============================================="
+
+# Check if icon file exists
+if [ ! -f "$APP_ICON_PATH" ]; then
+    echo "❌ Error: Icon file not found: $APP_ICON_PATH"
+    exit 1
 fi
+
+# Check if ImageMagick is installed (for convert command)
+if ! command -v magick &> /dev/null && ! command -v convert &> /dev/null; then
+    echo "❌ Error: ImageMagick is not installed"
+    echo "Please install it with: brew install imagemagick"
+    exit 1
+fi
+
+# Determine convert command (newer ImageMagick uses 'magick', older uses 'convert')
+CONVERT_CMD="convert"
+if command -v magick &> /dev/null; then
+    CONVERT_CMD="magick"
+fi
+
+# Output icon path
+ICON_OUTPUT="partner-configs/${PARTNER_KEY}.logo.png"
+
+echo "📁 Input icon: $APP_ICON_PATH"
+echo "📐 Converting and resizing to 1024x1024 PNG..."
+
+# Convert and resize icon to 1024x1024 PNG
+$CONVERT_CMD "$APP_ICON_PATH" -resize 1024x1024 -background none -gravity center -extent 1024x1024 "$ICON_OUTPUT"
+
+if [ $? -ne 0 ]; then
+    echo "❌ Error: Failed to process icon"
+    exit 1
+fi
+
+# Get file size
+ICON_SIZE=$(du -h "$ICON_OUTPUT" | cut -f1)
+
+echo "✅ Icon processed and saved to: $ICON_OUTPUT"
+echo "📊 Icon size: $ICON_SIZE"
+echo ""
 
 # ===================================================================
 # Create Firebase Apps
 # ===================================================================
-
-if [ "$SKIP_FIREBASE" = true ]; then
-    echo ""
-    echo "⏭️  Skipping Firebase app creation (--skip-firebase flag)"
-    echo ""
-    echo "🎉 Partner configuration created successfully!"
-    exit 0
-fi
 
 echo "==============================================="
 echo "🔥 Creating Firebase apps..."
@@ -275,7 +240,6 @@ firebase apps:create -b "$APP_ID_IOS" -s "" IOS "$IOS_NAME" --project "$PROJECT"
 
 if [ $? -ne 0 ]; then
     echo "❌ Error: Failed to create iOS Firebase app"
-    exit 1
 fi
 
 # Get iOS app ID
@@ -291,7 +255,6 @@ firebase apps:sdkconfig ios "$IOS_APPID" --project "$PROJECT" > "partner-configs
 
 if [ $? -ne 0 ]; then
     echo "❌ Error: Failed to download iOS config"
-    exit 1
 fi
 
 echo "✅ iOS config saved to: partner-configs/${PARTNER_KEY}.GoogleService-Info.plist"
