@@ -284,15 +284,15 @@ echo ""
 echo "💾 Lưu configs vào submodule partner-configs..."
 cd ${CONFIGS_DIR}
 
-# Copy files vào partner-configs và cập nhật version nếu có override
-if [ -n "$APP_VERSION_OVERRIDE" ]; then
-  # Copy env file và update version
+# Copy env file vào partner-configs nếu ENV_FILE được truyền từ ngoài vào
+if [ "$USE_ENV_FILE" = true ]; then
   cp "$ENV_FILE" "./${PARTNER_KEY}.env.txt"
+fi
+# Nếu có version override thì cập nhật version trong file env
+if [ -n "$APP_VERSION_OVERRIDE" ]; then
   sed -i '' "s|APP_VERSION=.*|APP_VERSION=$APP_VERSION_OVERRIDE|" "./${PARTNER_KEY}.env.txt"
   sed -i '' "s|APP_BUILD_CODE=.*|APP_BUILD_CODE=$APP_BUILD_CODE_OVERRIDE|" "./${PARTNER_KEY}.env.txt"
   echo "  ✅ Updated version trong partner-configs: $APP_VERSION_OVERRIDE (build: $APP_BUILD_CODE_OVERRIDE)"
-else
-  cp "$ENV_FILE" "./${PARTNER_KEY}.env.txt"
 fi
 
 # Copy logo nếu có thay đổi
@@ -300,10 +300,6 @@ if [ "$SKIP_ICON" = false ]; then
   cp "$APP_ICON_PATH" "./${PARTNER_KEY}.logo.png"
   echo "  ✅ Updated logo trong partner-configs"
 fi
-
-# Copy Firebase configs (luôn copy để đảm bảo đồng bộ)
-cp "$FB_ANDROID_PATH" "./${PARTNER_KEY}.google-services.json"
-cp "$FB_IOS_PATH" "./${PARTNER_KEY}.GoogleService-Info.plist"
 
 # Git commit trong partner-configs
 echo "  📤 Commit configs trong partner-configs..."
