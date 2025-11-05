@@ -24,7 +24,8 @@ fi
 SOURCE_BRANCH=$1
 shift
 
-CONFIGS_DIR="partner-configs"
+# Đặt CONFIGS_DIR là đường dẫn tuyệt đối đến folder hiện tại + /partner-configs
+CONFIGS_DIR="$(pwd)/partner-configs"
 PARTNER_KEY=""
 ENV_FILE=""
 VERSION_OVERRIDE=""
@@ -134,8 +135,8 @@ echo "  SOURCE_BRANCH: $SOURCE_BRANCH"
 echo ""
 
 # Xác định đường dẫn Firebase configs
-FB_IOS_PATH="../${CONFIGS_DIR}/${PARTNER_KEY}.GoogleService-Info.plist"
-FB_ANDROID_PATH="../${CONFIGS_DIR}/${PARTNER_KEY}.google-services.json"
+FB_IOS_PATH="${CONFIGS_DIR}/${PARTNER_KEY}.GoogleService-Info.plist"
+FB_ANDROID_PATH="${CONFIGS_DIR}/${PARTNER_KEY}.google-services.json"
 
 # Chuyển vào thư mục emddi-v2
 echo ""
@@ -156,7 +157,7 @@ fi
 # Xác định đường dẫn app icon
 if [ -z "$APP_ICON_PATH" ]; then
   # Không truyền icon path, lấy từ partner-configs
-  APP_ICON_PATH="../${CONFIGS_DIR}/${PARTNER_KEY}.logo.png"
+  APP_ICON_PATH="${CONFIGS_DIR}/${PARTNER_KEY}.logo.png"
   if [ ! -f "$APP_ICON_PATH" ]; then
     echo "⚠️  Không tìm thấy app icon trong partner-configs: $APP_ICON_PATH"
     echo "   Sẽ giữ nguyên icon hiện tại"
@@ -278,7 +279,7 @@ sed -i '' 's|https://api.emddi.com|https://api.uat.emddi.net|g' ./.env.staging
 # Lưu configs vào submodule partner-configs
 echo ""
 echo "💾 Lưu configs vào submodule partner-configs..."
-cd ../${CONFIGS_DIR}
+cd ${CONFIGS_DIR}
 
 # Copy files vào partner-configs và cập nhật version nếu có override
 if [ -n "$APP_VERSION_OVERRIDE" ]; then
