@@ -161,8 +161,67 @@ if [ -n "$APP_ICON_PATH" ]; then
     echo "❌ File app icon không tồn tại: $APP_ICON_PATH"
     exit 1
   fi
-  APP_ICON_PATH="$(cd \"$(dirname \"$APP_ICON_PATH\")\" && pwd)/$(basename \"$APP_ICON_PATH\")"
-  echo "📄 Sử dụng icon truyền vào: $APP_ICON_PATH"
+  
+  # Chuyển sang absolute path
+  if [[ "$APP_ICON_PATH" != /* ]]; then
+    APP_ICON_PATH="$(cd "$(dirname "$APP_ICON_PATH")" && pwd)/$(basename "$APP_ICON_PATH")"
+  fi
+  
+  echo "📄 Icon được truyền vào: $APP_ICON_PATH"
+  
+  # Kiểm tra xem có phải file PNG 1024x1024 hay không
+  NEED_CONVERT=false
+  if command -v identify &> /dev/null; then
+    ICON_INFO=$(identify -format "%wx%h %m" "$APP_ICON_PATH" 2>/dev/null || echo "")
+    if [[ ! "$ICON_INFO" =~ ^1024x1024\ PNG ]]; then
+      echo "⚙️  Icon cần được chuyển đổi sang PNG 1024x1024"
+      NEED_CONVERT=true
+    else
+      echo "✅ Icon đã đúng định dạng PNG 1024x1024"
+    fi
+  else
+    # Không có ImageMagick, kiểm tra extension
+    if [[ ! "$APP_ICON_PATH" =~ \.png$ ]]; then
+      echo "⚙️  Icon không phải PNG, cần chuyển đổi"
+      NEED_CONVERT=true
+    fi
+  fi
+  
+  # Convert icon nếu cần
+  if [ "$NEED_CONVERT" = true ]; then
+    echo "🎨 Converting và resizing icon..."
+    
+    # Check if ImageMagick is installed
+    if ! command -v magick &> /dev/null && ! command -v convert &> /dev/null; then
+      echo "❌ Error: ImageMagick is not installed"
+      echo "   Icon sẽ được sử dụng nguyên bản (không convert)"
+      echo "   Để convert tự động, cài đặt ImageMagick: brew install imagemagick"
+    else
+      # Determine convert command
+      CONVERT_CMD="convert"
+      if command -v magick &> /dev/null; then
+        CONVERT_CMD="magick"
+      fi
+      
+      # Tạo file tạm cho icon đã convert
+      TEMP_ICON_PATH="${CONFIGS_DIR}/.temp_${PARTNER_KEY}_icon.png"
+      
+      # Convert và resize
+      $CONVERT_CMD "$APP_ICON_PATH" -resize 1024x1024 -background none -gravity center -extent 1024x1024 "$TEMP_ICON_PATH"
+      
+      if [ $? -eq 0 ]; then
+        # Lấy kích thước file
+        ICON_SIZE=$(du -h "$TEMP_ICON_PATH" | cut -f1)
+        echo "  ✅ Icon converted: $TEMP_ICON_PATH (size: $ICON_SIZE)"
+        
+        # Cập nhật APP_ICON_PATH để sử dụng file đã convert
+        APP_ICON_PATH="$TEMP_ICON_PATH"
+      else
+        echo "  ⚠️  Convert thất bại, sử dụng icon gốc"
+      fi
+    fi
+  fi
+  
   SKIP_ICON=false
   ICON_SOURCE="custom"
 elif [ -f "${CONFIGS_DIR}/${PARTNER_KEY}.logo.png" ]; then
@@ -296,11 +355,24 @@ fi
 
 # Copy logo vào partner-configs chỉ khi có APP_ICON_PATH truyền vào từ câu lệnh
 if [ "$SKIP_ICON" = false ] && [ "$ICON_SOURCE" = "custom" ]; then
-  if [ "$APP_ICON_PATH" != "./${PARTNER_KEY}.logo.png" ] && ! cmp -s "$APP_ICON_PATH" "./${PARTNER_KEY}.logo.png"; then
-    cp "$APP_ICON_PATH" "./${PARTNER_KEY}.logo.png"
-    echo "  ✅ Updated logo trong partner-configs"
-  else
+  TARGET_LOGO_PATH="./${PARTNER_KEY}.logo.png"
+  
+  # Kiểm tra xem icon đã tồn tại và giống nhau hay chưa
+  if [ -f "$TARGET_LOGO_PATH" ] && cmp -s "$APP_ICON_PATH" "$TARGET_LOGO_PATH"; then
     echo "  ⏭️  Logo đã giống nhau, không cần copy"
+  else
+    cp "$APP_ICON_PATH" "$TARGET_LOGO_PATH"
+    
+    # Lấy kích thước file
+    LOGO_SIZE=$(du -h "$TARGET_LOGO_PATH" | cut -f1)
+    
+    # Kiểm tra kích thước ảnh nếu có ImageMagick
+    if command -v identify &> /dev/null; then
+      LOGO_DIMENSIONS=$(identify -format "%wx%h" "$TARGET_LOGO_PATH" 2>/dev/null || echo "unknown")
+      echo "  ✅ Updated logo trong partner-configs (${LOGO_DIMENSIONS}, ${LOGO_SIZE})"
+    else
+      echo "  ✅ Updated logo trong partner-configs (${LOGO_SIZE})"
+    fi
   fi
 fi
 
@@ -360,6 +432,14 @@ git commit -m "🎉 Init partner: $APP_NAME ($PARTNER_KEY)
 "
 
 git push --set-upstream origin $BRANCH_NAME
+
+# Cleanup temporary icon file if exists
+if [ -n "$TEMP_ICON_PATH" ] && [ -f "$TEMP_ICON_PATH" ]; then
+  echo ""
+  echo "🧹 Cleanup temporary files..."
+  rm -f "$TEMP_ICON_PATH"
+  echo "  ✅ Removed temporary icon file"
+fi
 
 echo ""
 echo "=========================================="
