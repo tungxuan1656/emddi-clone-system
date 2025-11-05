@@ -6,29 +6,46 @@
 
 set -e
 
-# Check for --skip-firebase flag
+# Check for optional flags
 SKIP_FIREBASE=false
-for arg in "$@"; do
+APP_ICON_PATH=""
+
+# Parse flags
+args=()
+i=1
+while [ $i -le $# ]; do
+    arg="${!i}"
     if [ "$arg" == "--skip-firebase" ]; then
         SKIP_FIREBASE=true
-        break
+    elif [ "$arg" == "--icon" ]; then
+        i=$((i + 1))
+        APP_ICON_PATH="${!i}"
+    else
+        args+=("$arg")
     fi
+    i=$((i + 1))
 done
+
+# Restore positional parameters
+set -- "${args[@]}"
 
 # Check if required parameters are provided
 if [ $# -lt 4 ]; then
     echo "Error: Missing required parameters"
-    echo "Usage: $0 <APP_NAME> <PARTNER_KEY> <APP_CODE> <COLOR_PARAMS...> [--skip-firebase]"
+    echo "Usage: $0 <APP_NAME> <PARTNER_KEY> <APP_CODE> <COLOR_PARAMS...> [--skip-firebase] [--icon <path>]"
     echo ""
     echo "Parameters:"
-    echo "  APP_NAME       - The display name of the app (e.g., 'Aida Go')"
-    echo "  PARTNER_KEY    - The partner key identifier (e.g., 'aidago')"
-    echo "  APP_CODE       - The app code identifier (e.g., 'AIDA_GO')"
-    echo "  COLOR_PARAMS   - Primary colors as separate parameters"
-    echo "  --skip-firebase - Skip Firebase app creation (optional)"
+    echo "  APP_NAME         - The display name of the app (e.g., 'Aida Go')"
+    echo "  PARTNER_KEY      - The partner key identifier (e.g., 'aidago')"
+    echo "  APP_CODE         - The app code identifier (e.g., 'AIDA_GO')"
+    echo "  COLOR_PARAMS     - Primary colors as separate parameters"
+    echo ""
+    echo "Optional flags:"
+    echo "  --skip-firebase  - Skip Firebase app creation"
+    echo "  --icon <path>    - Path to app icon (will be converted to 1024x1024 PNG)"
     echo ""
     echo "Example:"
-    echo "  $0 \"My App\" myapp MY_APP 'PRIMARY_COLOR=\"#0CC3C9\"' 'PRIMARY_100=\"#E5F9FA\"' 'PRIMARY_200=\"#B3EDF1\"' 'PRIMARY_300=\"#80E2E7\"' 'PRIMARY_400=\"#4DDAE0\"' 'PRIMARY_500=\"#0CC3C9\"' 'PRIMARY_600=\"#0B989C\"' 'PRIMARY_700=\"#086C6E\"'"
+    echo "  $0 \"My App\" myapp MY_APP 'PRIMARY_COLOR=\"#0CC3C9\"' 'PRIMARY_100=\"#E5F9FA\"' 'PRIMARY_200=\"#B3EDF1\"' 'PRIMARY_300=\"#80E2E7\"' 'PRIMARY_400=\"#4DDAE0\"' 'PRIMARY_500=\"#0CC3C9\"' 'PRIMARY_600=\"#0B989C\"' 'PRIMARY_700=\"#086C6E\"' --icon ./logo.png"
     exit 1
 fi
 
@@ -119,6 +136,11 @@ fi
 
 # Create the partner-configs directory if it doesn't exist
 mkdir -p partner-configs
+cd partner-configs
+git reset --hard
+git checkout .
+git clean -fd
+cd ..
 
 # Create the env file
 cat > "$OUTPUT_FILE" << EOF
@@ -167,6 +189,56 @@ echo "  APP_ID_ANDROID: $APP_ID_ANDROID"
 echo "  APP_ID_IOS: $APP_ID_IOS"
 echo "  PRIMARY_COLOR: $PRIMARY_COLOR"
 echo ""
+
+# ===================================================================
+# Process App Icon
+# ===================================================================
+
+if [ -n "$APP_ICON_PATH" ]; then
+    echo "==============================================="
+    echo "🎨 Processing app icon..."
+    echo "==============================================="
+    
+    # Check if icon file exists
+    if [ ! -f "$APP_ICON_PATH" ]; then
+        echo "❌ Error: Icon file not found: $APP_ICON_PATH"
+        exit 1
+    fi
+    
+    # Check if ImageMagick is installed (for convert command)
+    if ! command -v magick &> /dev/null && ! command -v convert &> /dev/null; then
+        echo "❌ Error: ImageMagick is not installed"
+        echo "Please install it with: brew install imagemagick"
+        exit 1
+    fi
+    
+    # Determine convert command (newer ImageMagick uses 'magick', older uses 'convert')
+    CONVERT_CMD="convert"
+    if command -v magick &> /dev/null; then
+        CONVERT_CMD="magick"
+    fi
+    
+    # Output icon path
+    ICON_OUTPUT="partner-configs/${PARTNER_KEY}.logo.png"
+    
+    echo "📁 Input icon: $APP_ICON_PATH"
+    echo "📐 Converting and resizing to 1024x1024 PNG..."
+    
+    # Convert and resize icon to 1024x1024 PNG
+    $CONVERT_CMD "$APP_ICON_PATH" -resize 1024x1024 -background none -gravity center -extent 1024x1024 "$ICON_OUTPUT"
+    
+    if [ $? -ne 0 ]; then
+        echo "❌ Error: Failed to process icon"
+        exit 1
+    fi
+    
+    # Get file size
+    ICON_SIZE=$(du -h "$ICON_OUTPUT" | cut -f1)
+    
+    echo "✅ Icon processed and saved to: $ICON_OUTPUT"
+    echo "📊 Icon size: $ICON_SIZE"
+    echo ""
+fi
 
 # ===================================================================
 # Create Firebase Apps
@@ -287,16 +359,28 @@ git add "partner-configs/${PARTNER_KEY}.env.txt"
 git add "partner-configs/${PARTNER_KEY}.google-services.json"
 git add "partner-configs/${PARTNER_KEY}.GoogleService-Info.plist"
 
+# Add icon if it exists
+if [ -n "$APP_ICON_PATH" ] && [ -f "partner-configs/${PARTNER_KEY}.logo.png" ]; then
+    git add "partner-configs/${PARTNER_KEY}.logo.png"
+fi
+
 # Check if there are changes to commit
 if git diff --cached --quiet; then
     echo "⚠️  No changes to commit"
 else
-    # Commit
-    git commit -m "feat: Add partner config for $PARTNER_KEY ($APP_NAME)
+    # Build commit message
+    COMMIT_MSG="feat: Add partner config for $PARTNER_KEY ($APP_NAME)
 
 - Added env configuration
 - Added Firebase Android config
-- Added Firebase iOS config
+- Added Firebase iOS config"
+    
+    if [ -n "$APP_ICON_PATH" ]; then
+        COMMIT_MSG="$COMMIT_MSG
+- Added app icon (1024x1024)"
+    fi
+    
+    COMMIT_MSG="$COMMIT_MSG
 
 Partner details:
 - APP_NAME: $APP_NAME
@@ -304,6 +388,9 @@ Partner details:
 - APP_CODE: $APP_CODE
 - APP_ID_ANDROID: $APP_ID_ANDROID
 - APP_ID_IOS: $APP_ID_IOS"
+    
+    # Commit
+    git commit -m "$COMMIT_MSG"
 
     if [ $? -eq 0 ]; then
         echo "✅ Successfully committed files"
