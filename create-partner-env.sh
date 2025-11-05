@@ -123,6 +123,14 @@ APP_ID_IOS="com.emddi.partner.$PARTNER_KEY"
 # Output file path
 OUTPUT_FILE="partner-configs/${PARTNER_KEY}.env.txt"
 
+# Create the partner-configs directory if it doesn't exist
+mkdir -p partner-configs
+cd partner-configs
+git reset --hard
+git checkout .
+git clean -fd
+cd ..
+
 # Check if file already exists
 if [ -f "$OUTPUT_FILE" ]; then
     echo "Warning: File $OUTPUT_FILE already exists"
@@ -133,14 +141,6 @@ if [ -f "$OUTPUT_FILE" ]; then
         exit 0
     fi
 fi
-
-# Create the partner-configs directory if it doesn't exist
-mkdir -p partner-configs
-cd partner-configs
-git reset --hard
-git checkout .
-git clean -fd
-cd ..
 
 # Create the env file
 cat > "$OUTPUT_FILE" << EOF
