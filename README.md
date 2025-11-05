@@ -6,14 +6,14 @@ Hệ thống quản lý và build multiple partner apps từ source code chung s
 
 ```
 emddi-customer-clone-system/
-├── partner-configs/          # Submodule: configs của các partner
+├── partner-configs/         
 │   ├── {partner-key}.env.txt
 │   ├── {partner-key}.logo.png
 │   ├── {partner-key}.GoogleService-Info.plist
 │   └── {partner-key}.google-services.json
-├── emddi-v2/                 # Submodule: source code chính
-├── emddi-v2-ios/             # Submodule: cho iOS build
-├── emddi-v2-android/         # Submodule: cho Android build
+├── emddi-v2/              
+├── emddi-v2-ios/             
+├── emddi-v2-android/         
 ├── secrets/                  # Secrets cho Fastlane (KHÔNG commit)
 │   ├── AuthKey_C7894KGAY7.p8
 │   ├── emddi2024-key-fastlane-upload-aab.json
@@ -27,9 +27,12 @@ emddi-customer-clone-system/
 ### 1. Setup lần đầu
 
 ```bash
-git clone git@gitlab.emddi.xyz:emddi-software/emddi-customer-clone-system.git
-cd emddi-customer-clone-system
-git submodule update --init --recursive
+git clone git@github.com:tungxuan1656/emddi-clone-system.git
+cd emddi-clone-system
+git clone git@github.com:tungxuan1656/emddi-customer-v2.git emddi-v2
+cp -R ./emddi-v2 ./emddi-v2-ios
+cp -R ./emddi-v2 ./emddi-v2-android
+git clone git@github.com:tungxuan1656/emddi-customer-partner-configs.git partner-configs
 ```
 
 ### 2. Setup Secrets cho Fastlane
