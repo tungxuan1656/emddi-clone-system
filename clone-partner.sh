@@ -155,27 +155,26 @@ if [ ! -f "$FB_ANDROID_PATH" ]; then
 fi
 
 # Xác định đường dẫn app icon
-if [ -z "$APP_ICON_PATH" ]; then
-  # Không truyền icon path, lấy từ partner-configs
-  APP_ICON_PATH="${CONFIGS_DIR}/${PARTNER_KEY}.logo.png"
-  if [ ! -f "$APP_ICON_PATH" ]; then
-    echo "⚠️  Không tìm thấy app icon trong partner-configs: $APP_ICON_PATH"
-    echo "   Sẽ giữ nguyên icon hiện tại"
-    SKIP_ICON=true
-  else
-    echo "📄 Sử dụng icon từ partner-configs: $APP_ICON_PATH"
-    SKIP_ICON=false
-  fi
-else
-  # Có truyền icon path - cần chuyển sang relative path
+if [ -n "$APP_ICON_PATH" ]; then
+  # Có truyền icon path - cần chuyển sang absolute path
   if [ ! -f "$APP_ICON_PATH" ]; then
     echo "❌ File app icon không tồn tại: $APP_ICON_PATH"
     exit 1
   fi
-  # Lưu absolute path trước khi cd
-  APP_ICON_PATH="$(cd "$(dirname "$APP_ICON_PATH")" && pwd)/$(basename "$APP_ICON_PATH")"
-  echo "📄 Sử dụng icon tùy chỉnh: $APP_ICON_PATH"
+  APP_ICON_PATH="$(cd \"$(dirname \"$APP_ICON_PATH\")\" && pwd)/$(basename \"$APP_ICON_PATH\")"
+  echo "📄 Sử dụng icon truyền vào: $APP_ICON_PATH"
   SKIP_ICON=false
+  ICON_SOURCE="custom"
+elif [ -f "${CONFIGS_DIR}/${PARTNER_KEY}.logo.png" ]; then
+  APP_ICON_PATH="${CONFIGS_DIR}/${PARTNER_KEY}.logo.png"
+  echo "📄 Sử dụng icon từ partner-configs: $APP_ICON_PATH"
+  SKIP_ICON=false
+  ICON_SOURCE="config"
+else
+  echo "⚠️  Không tìm thấy app icon trong partner-configs: ${CONFIGS_DIR}/${PARTNER_KEY}.logo.png"
+  echo "   Sẽ giữ nguyên icon hiện tại"
+  SKIP_ICON=true
+  ICON_SOURCE="none"
 fi
 
 # Validate Firebase config
@@ -295,10 +294,14 @@ if [ -n "$APP_VERSION_OVERRIDE" ]; then
   echo "  ✅ Updated version trong partner-configs: $APP_VERSION_OVERRIDE (build: $APP_BUILD_CODE_OVERRIDE)"
 fi
 
-# Copy logo nếu có thay đổi
-if [ "$SKIP_ICON" = false ]; then
-  cp "$APP_ICON_PATH" "./${PARTNER_KEY}.logo.png"
-  echo "  ✅ Updated logo trong partner-configs"
+# Copy logo vào partner-configs chỉ khi có APP_ICON_PATH truyền vào từ câu lệnh
+if [ "$SKIP_ICON" = false ] && [ "$ICON_SOURCE" = "custom" ]; then
+  if [ "$APP_ICON_PATH" != "./${PARTNER_KEY}.logo.png" ] && ! cmp -s "$APP_ICON_PATH" "./${PARTNER_KEY}.logo.png"; then
+    cp "$APP_ICON_PATH" "./${PARTNER_KEY}.logo.png"
+    echo "  ✅ Updated logo trong partner-configs"
+  else
+    echo "  ⏭️  Logo đã giống nhau, không cần copy"
+  fi
 fi
 
 # Git commit trong partner-configs
