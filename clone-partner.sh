@@ -203,24 +203,16 @@ echo "🌿 Branch: $BRANCH_NAME"
 # Git setup - xoá branch cũ nếu tồn tại
 echo ""
 echo "🔧 Git setup..."
+git clean -fd && git checkout .
 git fetch origin
-
-# Xoá branch local nếu tồn tại
-if git show-ref --verify --quiet refs/heads/$BRANCH_NAME; then
-  echo "  🗑️  Xoá branch local cũ: $BRANCH_NAME"
-  git branch -D $BRANCH_NAME
-fi
-
-# Xoá branch remote nếu tồn tại
-if git ls-remote --exit-code --heads origin $BRANCH_NAME > /dev/null 2>&1; then
-  echo "  🗑️  Xoá branch remote cũ: $BRANCH_NAME"
-  git push origin --delete $BRANCH_NAME
-fi
-
-# Checkout source branch
 echo "  ✨ Checkout branch: $SOURCE_BRANCH"
 git checkout $SOURCE_BRANCH
 git pull origin $SOURCE_BRANCH
+
+git push origin -d $BRANCH_NAME --force
+git branch -d $BRANCH_NAME
+git branch -D $BRANCH_NAME
+# Checkout source branch
 git checkout -b $BRANCH_NAME
 
 # Copy resources

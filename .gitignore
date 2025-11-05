@@ -19,3 +19,8 @@ node_modules/
 *.p8
 *.jks
 *-key-fastlane-upload-*.json
+
+emddi-v2/
+emddi-v2-ios/
+emddi-v2-android/
+partner-configs/
