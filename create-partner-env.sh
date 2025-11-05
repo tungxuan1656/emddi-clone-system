@@ -236,7 +236,7 @@ fi
 # Create iOS app
 echo ""
 echo "📱 Creating iOS Firebase app: $IOS_NAME"
-firebase apps:create -b "$APP_ID_IOS" -s "" IOS "$IOS_NAME" --project "$PROJECT"
+firebase apps:create -b "$APP_ID_IOS" -s "" IOS "$IOS_NAME" --project "$PROJECT" || true
 
 if [ $? -ne 0 ]; then
     echo "❌ Error: Failed to create iOS Firebase app"
@@ -262,7 +262,7 @@ echo "✅ iOS config saved to: partner-configs/${PARTNER_KEY}.GoogleService-Info
 # Create Android app
 echo ""
 echo "🤖 Creating Android Firebase app: $ANDROID_NAME"
-firebase apps:create -a "$APP_ID_ANDROID" ANDROID "$ANDROID_NAME" --project "$PROJECT"
+firebase apps:create -a "$APP_ID_ANDROID" ANDROID "$ANDROID_NAME" --project "$PROJECT" || true
 
 if [ $? -ne 0 ]; then
     echo "❌ Error: Failed to create Android Firebase app"
