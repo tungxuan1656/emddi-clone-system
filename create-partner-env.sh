@@ -346,6 +346,8 @@ echo "==============================================="
 echo ""
 echo "📝 Committing files to git..."
 
+cd ./partner-configs
+
 # Check if we're in a git repository
 if ! git rev-parse --git-dir > /dev/null 2>&1; then
     echo "⚠️  Warning: Not in a git repository. Skipping commit."
@@ -355,14 +357,7 @@ if ! git rev-parse --git-dir > /dev/null 2>&1; then
 fi
 
 # Add files to git
-git add "partner-configs/${PARTNER_KEY}.env.txt"
-git add "partner-configs/${PARTNER_KEY}.google-services.json"
-git add "partner-configs/${PARTNER_KEY}.GoogleService-Info.plist"
-
-# Add icon if it exists
-if [ -n "$APP_ICON_PATH" ] && [ -f "partner-configs/${PARTNER_KEY}.logo.png" ]; then
-    git add "partner-configs/${PARTNER_KEY}.logo.png"
-fi
+git add .
 
 # Check if there are changes to commit
 if git diff --cached --quiet; then
@@ -373,12 +368,8 @@ else
 
 - Added env configuration
 - Added Firebase Android config
-- Added Firebase iOS config"
-    
-    if [ -n "$APP_ICON_PATH" ]; then
-        COMMIT_MSG="$COMMIT_MSG
+- Added Firebase iOS config
 - Added app icon (1024x1024)"
-    fi
     
     COMMIT_MSG="$COMMIT_MSG
 
@@ -402,6 +393,7 @@ Partner details:
         exit 1
     fi
 fi
+cd ..
 
 echo ""
 echo "==============================================="
