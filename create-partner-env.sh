@@ -356,6 +356,7 @@ Partner details:
         exit 1
     fi
 fi
+git push origin $(git branch --show-current)
 cd ..
 
 echo ""
