@@ -137,6 +137,11 @@ echo ""
 FB_IOS_PATH="../${CONFIGS_DIR}/${PARTNER_KEY}.GoogleService-Info.plist"
 FB_ANDROID_PATH="../${CONFIGS_DIR}/${PARTNER_KEY}.google-services.json"
 
+# Chuyển vào thư mục emddi-v2
+echo ""
+echo "📂 Chuyển vào submodule emddi-v2..."
+cd emddi-v2
+
 # Kiểm tra Firebase files
 if [ ! -f "$FB_IOS_PATH" ]; then
   echo "❌ Không tìm thấy Firebase iOS config: $FB_IOS_PATH"
@@ -193,10 +198,6 @@ BRANCH_NAME="partners/$PARTNER_KEY"
 echo ""
 echo "🌿 Branch: $BRANCH_NAME"
 
-# Chuyển vào thư mục emddi-v2
-echo ""
-echo "📂 Chuyển vào submodule emddi-v2..."
-cd emddi-v2
 
 # Git setup - xoá branch cũ nếu tồn tại
 echo ""
@@ -224,9 +225,6 @@ git checkout -b $BRANCH_NAME
 # Copy resources
 echo ""
 echo "📦 Copy resources..."
-
-# Tạo thư mục logs nếu chưa có
-mkdir -p ./logs-partners
 
 # Copy Firebase configs cho tất cả môi trường (development, staging, production)
 echo "  📄 Copy Firebase configs..."
