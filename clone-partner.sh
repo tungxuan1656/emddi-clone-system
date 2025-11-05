@@ -412,6 +412,7 @@ cd ../emddi-v2
 echo ""
 echo "📦 Install dependencies..."
 yarn install
+yarn rounded-icon
 
 # Git commit và push
 echo ""
