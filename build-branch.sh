@@ -73,7 +73,7 @@ git reset --hard
 git clean -fd && git checkout .
 git fetch origin
 git checkout main
-git branch -D $branch 2>/dev/null || true
+git branch -D $BRANCH 2>/dev/null || true
 git checkout $BRANCH
 git pull origin $BRANCH
 
