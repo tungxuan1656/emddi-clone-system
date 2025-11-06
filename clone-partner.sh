@@ -328,12 +328,12 @@ if [ -n "$APP_VERSION_OVERRIDE" ]; then
 fi
 
 # Chỉnh sửa env development
-sed -i '' 's/ENV_NAME=Production/ENV_NAME=Development/' ./.env.development
+sed -i '' 's/ENV_NAME=production/ENV_NAME=development/' ./.env.development
 sed -i '' "s|BASE_URL=.*|BASE_URL=https://api.dev.emddi.net/customer-api/api|" ./.env.development
 sed -i '' 's|https://api.emddi.com|https://api.dev.emddi.net|g' ./.env.development
 
 # Chỉnh sửa env staging
-sed -i '' 's/ENV_NAME=Production/ENV_NAME=Staging/' ./.env.staging
+sed -i '' 's/ENV_NAME=production/ENV_NAME=staging/' ./.env.staging
 sed -i '' "s|BASE_URL=.*|BASE_URL=https://customer-api.uat.emddi.xyz/api|" ./.env.staging
 sed -i '' 's|https://api.emddi.com|https://api.uat.emddi.net|g' ./.env.staging
 
