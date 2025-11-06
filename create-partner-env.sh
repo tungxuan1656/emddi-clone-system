@@ -120,7 +120,7 @@ fi
 # Create the env file
 cat > "$OUTPUT_FILE" << EOF
 # CONFIG ALL APP
-ENV_NAME=Production
+ENV_NAME=production
 APP_NAME="$APP_NAME"
 PARTNER_KEY=$PARTNER_KEY
 APP_ID_ANDROID=$APP_ID_ANDROID
