@@ -11,6 +11,9 @@ echo "=========================================="
 echo "🚀 CLONE PARTNER SCRIPT - EXPO VERSION 2.2"
 echo "=========================================="
 
+git fetch
+git pull --rebase
+
 # Kiểm tra tham số
 if [ $# -lt 3 ]; then
   echo "❌ Thiếu tham số!"
