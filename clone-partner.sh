@@ -38,6 +38,7 @@ cd $CONFIGS_DIR
 git fetch
 git pull --rebase
 cd ..
+pwd
 
 # Parse flags
 while [[ $# -gt 0 ]]; do
