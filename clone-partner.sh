@@ -11,9 +11,6 @@ echo "=========================================="
 echo "🚀 CLONE PARTNER SCRIPT - EXPO VERSION 2.2"
 echo "=========================================="
 
-git fetch
-git pull --rebase
-
 # Kiểm tra tham số
 if [ $# -lt 3 ]; then
   echo "❌ Thiếu tham số!"
@@ -28,6 +25,7 @@ SOURCE_BRANCH=$1
 shift
 
 # Đặt CONFIGS_DIR là đường dẫn tuyệt đối đến folder hiện tại + /partner-configs
+PWD="$(pwd)"
 CONFIGS_DIR="$(pwd)/partner-configs"
 PARTNER_KEY=""
 ENV_FILE=""
@@ -36,6 +34,11 @@ APP_VERSION_OVERRIDE=""
 APP_BUILD_CODE_OVERRIDE=""
 APP_ICON_PATH=""
 USE_ENV_FILE=false
+
+cd $CONFIGS_DIR
+git fetch
+git pull --rebase
+cd $PWD
 
 # Parse flags
 while [[ $# -gt 0 ]]; do
