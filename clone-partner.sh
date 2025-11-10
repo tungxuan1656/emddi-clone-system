@@ -25,7 +25,6 @@ SOURCE_BRANCH=$1
 shift
 
 # Đặt CONFIGS_DIR là đường dẫn tuyệt đối đến folder hiện tại + /partner-configs
-PWD="$(pwd)"
 CONFIGS_DIR="$(pwd)/partner-configs"
 PARTNER_KEY=""
 ENV_FILE=""
@@ -38,7 +37,7 @@ USE_ENV_FILE=false
 cd $CONFIGS_DIR
 git fetch
 git pull --rebase
-cd $PWD
+cd ..
 
 # Parse flags
 while [[ $# -gt 0 ]]; do
