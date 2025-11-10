@@ -377,7 +377,16 @@ if [ "$SKIP_ICON" = false ] && [ "$ICON_SOURCE" = "custom" ]; then
 fi
 
 # Git commit trong partner-configs
+# Cleanup temporary icon file if exists
+if [ -n "$TEMP_ICON_PATH" ] && [ -f "$TEMP_ICON_PATH" ]; then
+  echo ""
+  echo "🧹 Cleanup temporary files..."
+  rm -f "$TEMP_ICON_PATH"
+  echo "  ✅ Removed temporary icon file"
+fi
 echo "  📤 Commit configs trong partner-configs..."
+git fetch
+git pull --rebase
 git add .
 if git diff --staged --quiet; then
   echo "  ⏭️  Không có thay đổi trong partner-configs"
@@ -433,14 +442,6 @@ git commit -m "🎉 Init partner: $APP_NAME ($PARTNER_KEY)
 "
 
 git push --set-upstream origin $BRANCH_NAME
-
-# Cleanup temporary icon file if exists
-if [ -n "$TEMP_ICON_PATH" ] && [ -f "$TEMP_ICON_PATH" ]; then
-  echo ""
-  echo "🧹 Cleanup temporary files..."
-  rm -f "$TEMP_ICON_PATH"
-  echo "  ✅ Removed temporary icon file"
-fi
 
 echo ""
 echo "=========================================="
