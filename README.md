@@ -33,6 +33,7 @@ git clone git@github.com:tungxuan1656/emddi-customer-v2.git emddi-v2
 cp -R ./emddi-v2 ./emddi-v2-ios
 cp -R ./emddi-v2 ./emddi-v2-android
 git clone git@github.com:tungxuan1656/emddi-customer-partner-configs.git partner-configs
+git clone git@gitlab.emddi.xyz:emddi-software/emddi-onelink.git
 ```
 
 ### 2. Setup Secrets cho Fastlane
