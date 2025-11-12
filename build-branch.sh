@@ -144,13 +144,12 @@ echo "📦 Install dependencies..."
 yarn install
 
 echo "  📦 Install Fastlane plugins..."
-bundle update --bundler
-bundle update && bundle install
-bundle exec fastlane install_plugins --verbose
+bundle install
+bundle exec fastlane install_plugins
 
 # Build với npm script
 echo ""
-echo "� Build với npm script..."
+echo "📦 Build với npm script..."
 
 # Xác định npm script cần chạy
 if [ "$PLATFORM" = "ios" ]; then
