@@ -391,8 +391,6 @@ if [ -n "$TEMP_ICON_PATH" ] && [ -f "$TEMP_ICON_PATH" ]; then
   echo "  ✅ Removed temporary icon file"
 fi
 echo "  📤 Commit configs trong partner-configs..."
-git fetch
-git pull --rebase
 git add .
 if git diff --staged --quiet; then
   echo "  ⏭️  Không có thay đổi trong partner-configs"
