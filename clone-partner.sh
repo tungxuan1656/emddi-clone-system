@@ -340,8 +340,8 @@ sed -i '' 's|https://api.emddi.com|https://api.dev.emddi.net|g' ./.env.developme
 
 # Chỉnh sửa env staging
 sed -i '' 's/ENV_NAME=production/ENV_NAME=staging/' ./.env.staging
-sed -i '' "s|BASE_URL=.*|BASE_URL=https://customer-api.uat.emddi.xyz/api|" ./.env.staging
-sed -i '' 's|https://api.emddi.com|https://api.uat.emddi.net|g' ./.env.staging
+sed -i '' "s|BASE_URL=.*|BASE_URL=https://api.uat.emddi.net/customer-api/api|" ./.env.staging
+sed -i '' 's|https://api.emddi.com|https://api.emddi.com|g' ./.env.staging
 
 # Lưu configs vào submodule partner-configs
 echo ""
