@@ -373,7 +373,7 @@ git push origin main
 cd emddi-v2-ios  # hoặc emddi-v2-android
 git clean -fd
 rm -rf ios android node_modules
-yarn install
+pnpm install
 cd ..
 ./build-branch.sh ios production partners/abc-taxi
 ```

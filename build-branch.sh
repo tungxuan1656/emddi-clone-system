@@ -141,7 +141,7 @@ fi
 # Install dependencies
 echo ""
 echo "📦 Install dependencies..."
-yarn install
+pnpm install
 
 echo "  📦 Install Fastlane plugins..."
 bundle install
@@ -184,8 +184,8 @@ else
   esac
 fi
 
-echo "  📌 Running: yarn $NPM_SCRIPT"
-yarn $NPM_SCRIPT
+echo "  📌 Running: pnpm $NPM_SCRIPT"
+pnpm $NPM_SCRIPT
 
 echo ""
 echo "=========================================="

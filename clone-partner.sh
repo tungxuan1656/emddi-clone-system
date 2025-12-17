@@ -424,8 +424,8 @@ cd ../emddi-v2
 # Install dependencies (optional)
 echo ""
 echo "📦 Install dependencies..."
-yarn install
-yarn rounded-icon
+pnpm install
+pnpm rounded-icon
 
 # Git commit và push
 echo ""
