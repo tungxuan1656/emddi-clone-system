@@ -221,7 +221,7 @@ echo "==============================================="
 echo "🔥 Creating Firebase apps..."
 echo "==============================================="
 
-PROJECT="emddi-software-2025"
+PROJECT="emddi-software-2026"
 IOS_NAME="ios-$PARTNER_KEY"
 ANDROID_NAME="android-$PARTNER_KEY"
 SHA1="5E:8F:16:06:2E:A3:CD:2C:4A:0D:54:78:76:BA:A6:F3:8C:AB:F6:25"
