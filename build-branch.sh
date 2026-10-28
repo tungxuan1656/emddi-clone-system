@@ -1,9 +1,16 @@
 #!/bin/bash
 
+# Jenkins historically invokes this file with `sh`, bypassing the shebang.
+if [ -z "${BASH_VERSION:-}" ]; then
+  exec /bin/bash "$0" "$@"
+fi
+
 # Script build branch cho Expo project - Version 2.2 (Submodule)
 # Usage: ./build-branch.sh <platform> <env> <branch>
 
 set -e
+
+SCRIPT_DIR=$(cd "$(dirname "$0")" && pwd)
 
 echo "=========================================="
 echo "🚀 BUILD BRANCH SCRIPT - EXPO VERSION 2.2"
@@ -55,8 +62,13 @@ else
   SUBMODULE_DIR="emddi-v2-android"
 fi
 
+# Check signing before checkout/prebuild changes the shared working directory.
+if [ "$PLATFORM" = "ios" ]; then
+  /bin/bash "$SCRIPT_DIR/scripts/ios-signing-preflight.sh"
+fi
+
 echo "📂 Chuyển vào submodule: $SUBMODULE_DIR"
-cd $SUBMODULE_DIR
+cd "$SCRIPT_DIR/$SUBMODULE_DIR"
 
 # Setup PATH
 export PATH="/opt/homebrew/opt/ruby/bin:$PATH"

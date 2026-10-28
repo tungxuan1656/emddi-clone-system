@@ -418,3 +418,41 @@ cd emddi-v2
 git branch -r | grep partners/
 cd ..
 ```
+# Jenkins iOS signing on this Mac
+
+If `[CP] Embed Pods Frameworks` fails, inspect `emddi-v2-ios/ios/build/*.log`.
+`errSecInternalComponent` from `codesign` means the Jenkins process cannot use
+the signing private key, even when the same build succeeds in Terminal.
+See [Apple's keychain troubleshooting guide](https://developer.apple.com/forums/thread/712005).
+
+Run once in an interactive Terminal as the macOS user running Jenkins:
+
+```bash
+bash scripts/setup-ios-signing.sh
+```
+
+Enter the login keychain password at the hidden prompt. If macOS asks to let
+`codesign` use the signing key, choose **Always Allow**. The setup stores the
+password outside the repository at `~/.config/emddi-cicd/keychain-password`,
+readable only by that user (mode `600`). Re-run setup after changing the
+keychain password. Remove that file to remove the saved credential.
+
+Alternatively, bind a Jenkins secret text credential to `IOS_KEYCHAIN_PASSWORD`.
+`IOS_KEYCHAIN_PATH`, `IOS_KEYCHAIN_PASSWORD_FILE`, and `IOS_SIGNING_IDENTITY`
+can override the default keychain, password-file path, and identity.
+
+`build-branch.sh` unlocks the keychain in the build's own security session and
+signs a disposable binary before checkout or prebuild. Seeing a certificate
+with `security find-identity` alone does not prove that signing works.
+This check applies to every iOS environment, including `production` and `store`.
+
+Use this Jenkins Execute Shell command:
+
+```bash
+cd /Users/tungdoan/Projects/cicd/emddi-clone-system
+/bin/bash build-branch.sh ios "$BUILD_ENV" "$BUILD_BRANCH"
+```
+
+The Fastlane production/store lanes upload releases, and the store lane submits
+to App Store review. To validate only signing, run
+`bash scripts/ios-signing-preflight.sh` from Jenkins first.
